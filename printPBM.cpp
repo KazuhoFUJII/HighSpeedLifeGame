@@ -37,10 +37,10 @@ void* printPBM(void* sf)
 
     //write file
     char fname[99];    
-    sprintf(fname, "./pbm/%08d.pbm", nt);
+    sprintf(fname, "./pbm/%06d.pbm", nt);
     FILE *fp = fopen(fname, "wb");
     if(fp == NULL){
-        printf("\n\nERR: CAN NOT OPEN %s\n", fname);
+        fprintf(stderr, "\n\nERR: CAN NOT OPEN %s\n", fname);
         return NULL;
     }
     
