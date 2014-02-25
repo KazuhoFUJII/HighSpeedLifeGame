@@ -44,7 +44,6 @@ int deadOrAlive(
     for (int i = 0; i < NUM_THREAD; i++) {
         ret += na[i];
     }
-
     return ret;
 }
 
@@ -58,66 +57,49 @@ void *deadOrAliveThread(void *arg)
     uint8_t       *doa    = parg->doa;
     int           *na     = parg->na;
 
-    uint16_t r0,    r1,    r2;
-    uint16_t r0_p1, r1_p1, r2_p1;
-    uint16_t r0_p2, r1_p2, r2_p2;
-    uint16_t nr;
-
-    int i, j, k0, k1, k2, l;
-    int s, w, o, e, n;
-    int c, cp1, cp2;
-
     *na = 0;
     
     #pragma unroll NY/NUM_THREAD/2
-    for (j =  tn      * (NY/NUM_THREAD); 
-         j < (tn + 1) * (NY/NUM_THREAD);
+    for (int j = tn*(NY/NUM_THREAD); 
+         j < (tn+1)*(NY/NUM_THREAD);
          j++ ) {
         #pragma unroll
-        for (i = 0; i < NC - 1; i++) {
-            k0 = i + (j  ) * NC;
-            k1 = i + (j+1) * NC;
-            k2 = i + (j+2) * NC;
+        for (int i = 0; i < ND; i++) {
+            int k0 = i + (j  )*NC;
+            int k1 = i + (j+1)*NC;
+            int k2 = i + (j+2)*NC;
             /* read from currnet field */
-            r0    = *(uint16_t *)(fld   +k0);
-            r1    = *(uint16_t *)(fld   +k1);
-            r2    = *(uint16_t *)(fld   +k2);
+            scan_t r0    = *(scan_t *)(fld   +k0);
+            scan_t r1    = *(scan_t *)(fld   +k1);
+            scan_t r2    = *(scan_t *)(fld   +k2);
 
-            r0_p1 = *(uint16_t *)(fld_p1+k0);
-            r1_p1 = *(uint16_t *)(fld_p1+k1);
-            r2_p1 = *(uint16_t *)(fld_p1+k2);
+            scan_t r0_p1 = *(scan_t *)(fld_p1+k0);
+            scan_t r1_p1 = *(scan_t *)(fld_p1+k1);
+            scan_t r2_p1 = *(scan_t *)(fld_p1+k2);
 
-            r0_p2 = *(uint16_t *)(fld_p2+k0);
-            r1_p2 = *(uint16_t *)(fld_p2+k1);
-            r2_p2 = *(uint16_t *)(fld_p2+k2);
+            scan_t r0_p2 = *(scan_t *)(fld_p2+k0);
+            scan_t r1_p2 = *(scan_t *)(fld_p2+k1);
+            scan_t r2_p2 = *(scan_t *)(fld_p2+k2);
 
-            nr = *(uint16_t *)(doa   +k1) & 0x1;
+            scan_t nr = *(scan_t *)(doa   +k1) & 0x1;
 
             #pragma unroll
-            for (l = 0; l < 8; l++) {
-                s = r0    & 0x2;
-                w = r1    & 0x1;
-                o = r1    & 0x2;
-                e = r1    & 0x4;
-                n = r2    & 0x2;
+            for (int l = 0; l < sizeof(scan_t)*8/2; l++) {
+                int b, m, t;
+                b  = r0    & 0x7;
+                m  = r1    & 0x7;
+                t  = r2    & 0x7;
+                int c   = b | m << 3 | t << 6;
 
-                c   = s | w << 1 | o << 2 | e << 3 | n << 4;
+                b  = r0_p1 & 0x7;
+                m  = r1_p1 & 0x7;
+                t  = r2_p1 & 0x7;
+                int cp1 = b | m << 3 | t << 6;
 
-                s = r0_p1 & 0x2;
-                w = r1_p1 & 0x1;
-                o = r1_p1 & 0x2;
-                e = r1_p1 & 0x4;
-                n = r2_p1 & 0x2;
-
-                cp1 = s | w << 1 | o << 2 | e << 3 | n << 4;
-
-                s = r0_p2 & 0x2;
-                w = r1_p2 & 0x1;
-                o = r1_p2 & 0x2;
-                e = r1_p2 & 0x4;
-                n = r2_p2 & 0x2;
-
-                cp2 = s | w << 1 | o << 2 | e << 3 | n << 4;
+                b  = r0_p2 & 0x7;
+                m  = r1_p2 & 0x7;
+                t  = r2_p2 & 0x7;
+                int cp2 = b | m << 3 | t << 6;
 
                 if (c == 0x0 || c == cp1 || c == cp2) {
                     nr |= 0;
@@ -137,8 +119,7 @@ void *deadOrAliveThread(void *arg)
                 r1_p2 >>= 1;
                 r2_p2 >>= 1;
             }
-
-            *(uint16_t *)(doa + k1) = nr;
+            *(scan_t *)(doa + k1) = nr;
         }
     }
     return NULL;
