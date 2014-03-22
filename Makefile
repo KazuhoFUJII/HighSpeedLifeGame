@@ -1,5 +1,7 @@
 TARGET=lg.out
-SRCS = main.cpp developCell.cpp developField.cpp initialize.cpp printPBM.cpp setBound.cpp deadOrAlive.cpp
+SRCS = main.cpp developCell.cpp developField.cpp \
+	initialize.cpp printPBM.cpp setBound.cpp \
+	deadOrAlive.cpp boxCount.cpp
 
 OBJS = $(SRCS:%.cpp=%.o)
 CXX = g++

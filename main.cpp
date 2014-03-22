@@ -11,6 +11,8 @@ void setBound2(uint8_t *field);
 int developField(const uint8_t *field, uint8_t *nfield);
 int deadOrAlive(const uint8_t* fld, const uint8_t* fld_p1, 
                 const uint8_t* fld_p2, uint8_t* doa);
+int *boxCount (const uint8_t *);
+void printBoxCount(int *cnt_b, int *cnt_a, int nt); 
 
 struct st_field{
     uint8_t *field;
@@ -45,7 +47,6 @@ int main(int argc, char *argv[])
 #endif
     time_t start = clock();
     initialize(field);
-
 #if PRINT_PBM >= 1
     sf.field = field;
     sf.nt = 0;
@@ -53,7 +54,6 @@ int main(int argc, char *argv[])
     pthread_t th_pbm;
     pthread_create(&th_pbm, NULL, printPBM, (void *)&sf);
 #endif
-
     /* main loop */
     #pragma unroll
     for (int nt = 1; nt <= EXEC_STEP; nt++) {
@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
         field_n  = tmp;
 
         setBound2(field);
-
 #if PRINT_PBM >= 1
         sf.field = field;
         sf.nt = nt;
@@ -78,7 +77,6 @@ int main(int argc, char *argv[])
         pthread_join(th_pbm, NULL);
         pthread_create(&th_pbm, NULL, printPBM, (void *)&sf);
 #endif
-        
 #if DEAD_OR_ALIVE == 1
         int alive = deadOrAlive(field, field_p1, field_p2, doa);
         setBound2(doa);
@@ -92,10 +90,20 @@ int main(int argc, char *argv[])
 #endif
 #endif
         fprintf(stdout, "\n");
+#if BOX_COUNT > 0
+        if (nt % BOX_COUNT == 0) {
+            int *cnt_b = boxCount(field);
+	    int *cnt_a = NULL;
+#if DEAD_OR_ALIVE > 0	
+	    cnt_a = boxCount(doa);
+#endif 
+            printBoxCount(cnt_b, cnt_a, nt);
+            free(cnt_b);
+            free(cnt_a);
+        }
+#endif
     }
-
     fprintf(stderr, "TIME: %ld [ms]\n", (clock() - start)*1000/CLOCKS_PER_SEC);
-
 #if PRINT_PBM >= 1
     pthread_join(th_pbm, NULL);
 #endif
